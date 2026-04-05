@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dashboard sophistiqué complet directement dans le code
+# Dashboard sophistiqué IBM Plex (propre et connecté)
 HTML_DASHBOARD = """
 <!DOCTYPE html>
 <html lang="fr">
@@ -95,7 +95,6 @@ HTML_DASHBOARD = """
       const res = await fetch('/api/status');
       const data = await res.json();
 
-      // Prix
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
         <div class="pcard"><div class="pcard-sym">BTC/USDT</div><div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div></div>
@@ -103,7 +102,6 @@ HTML_DASHBOARD = """
         <div class="pcard"><div class="pcard-sym">SOL/USDT</div><div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div></div>
       `;
 
-      // Signaux
       const tbody = document.getElementById('signals-body');
       tbody.innerHTML = '';
       data.recent_signals.forEach(s => {
@@ -134,7 +132,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "CryptoBot API"}
+    return {"status": "ok"}
 
 @app.get("/api/status")
 async def status():
