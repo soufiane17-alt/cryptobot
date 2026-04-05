@@ -49,40 +49,40 @@ def get_signal(symbol="BTC/USDT"):
         last_lower_bb = lower_bb.iloc[-1]
         last_ema50 = ema50.iloc[-1]
 
-        # Scoring équilibré et réaliste (v4)
-        score = 45  # base neutre
+        # === SCORING V5 - ÉQUILIBRÉ ET COHÉRENT ===
+        score = 48
 
-        # RSI (moins extrême)
-        if last_rsi < 22: score += 32
-        elif last_rsi < 30: score += 22
-        elif last_rsi > 78: score -= 32
-        elif last_rsi > 70: score -= 22
+        # RSI (priorité forte mais pas extrême)
+        if last_rsi < 25: score += 35
+        elif last_rsi < 32: score += 25
+        elif last_rsi > 78: score -= 35
+        elif last_rsi > 70: score -= 25
 
-        # MACD crossover (très important)
+        # MACD (confirmation très importante)
         if last_macd > last_macd_signal and macd.iloc[-2] <= macd_signal.iloc[-2]:
-            score += 28
+            score += 30
         if last_histogram > 0 and histogram.iloc[-2] <= 0:
-            score += 15
-
-        # Bollinger Bands
-        if last_price < last_lower_bb: score += 22
-        elif last_price > last_upper_bb: score -= 20
-
-        # EMA50 trend
-        if last_price > last_ema50: score += 15
-        else: score -= 8
-
-        # Bonus seulement si plusieurs conditions fortes sont alignées
-        if last_rsi < 28 and last_price < last_lower_bb and last_macd > last_macd_signal:
             score += 18
+
+        # Bollinger
+        if last_price < last_lower_bb: score += 28
+        elif last_price > last_upper_bb: score -= 25
+
+        # EMA50 (tendance générale)
+        if last_price > last_ema50: score += 16
+        else: score -= 10
+
+        # Bonus convergence forte (seulement si plusieurs signaux alignés)
+        if last_rsi < 30 and last_price < last_lower_bb and last_macd > last_macd_signal:
+            score += 20
 
         score = min(100, max(0, int(score)))
 
-        # Décision finale prudente
+        # === DÉCISION FINALE ===
         if score >= 85:
-            signal = "BUY" if last_price < last_ema50 * 1.02 else "SELL"
+            signal = "BUY" if last_price < last_ema50 * 1.015 else "SELL"
             reason = f"Signal TRÈS FORT {score}/100"
-        elif score >= 72:
+        elif score >= 73:
             signal = "BUY" if last_price > last_ema50 else "SELL"
             reason = f"Signal moyen {score}/100"
         else:
