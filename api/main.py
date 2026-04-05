@@ -38,7 +38,7 @@ HTML_DASHBOARD = """
     .wrapper { max-width: 1200px; margin: 0 auto; padding: 20px; }
     header { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid var(--border); }
     .logo { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600; }
-    .live { display: flex; align-items: center; gap: 8px; }
+    .live { display: flex; align-items: center; gap: 8px; font-size: 14px; }
     .dot { width: 10px; height: 10px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
     .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 30px 0; }
@@ -46,19 +46,19 @@ HTML_DASHBOARD = """
     .symbol { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--muted); }
     .price { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 14px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th, td { padding: 16px 12px; text-align: left; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); font-weight: 500; font-size: 13px; }
-    .pill { padding: 5px 14px; border-radius: 9999px; font-size: 12px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+    .pill { padding: 6px 16px; border-radius: 9999px; font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
     .pill.buy { background: rgba(34,197,94,0.2); color: var(--green); }
     .pill.sell { background: rgba(239,68,68,0.2); color: var(--red); }
     .pill.hold { background: rgba(234,179,8,0.2); color: var(--yellow); }
-    .score { font-weight: 700; color: var(--yellow); }
+    .score { font-weight: 700; color: var(--yellow); font-size: 15px; }
   </style>
 </head>
 <body>
 <header>
   <div class="logo">CryptoBot</div>
-  <div class="live"><div class="dot"></div><span>LIVE • EN TEMPS RÉEL</span></div>
+  <div class="live"><div class="dot"></div>LIVE • EN TEMPS RÉEL</div>
 </header>
 
 <div class="wrapper">
@@ -87,7 +87,6 @@ HTML_DASHBOARD = """
       const res = await fetch('/api/status');
       const data = await res.json();
 
-      // Prix
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
         <div class="card"><div class="symbol">BTC/USDT</div><div class="price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div></div>
@@ -95,7 +94,6 @@ HTML_DASHBOARD = """
         <div class="card"><div class="symbol">SOL/USDT</div><div class="price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div></div>
       `;
 
-      // Signaux
       const tbody = document.getElementById('signals-body');
       tbody.innerHTML = '';
       data.recent_signals.forEach(s => {
