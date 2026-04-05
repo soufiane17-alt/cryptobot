@@ -25,8 +25,8 @@ HTML_DASHBOARD = """
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    :root { --bg: #0d0d0d; --card: #141414; --border: rgba(255,255,255,0.1); --green: #22c55e; --red: #ef4444; --text: #f0f0f0; }
-    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; margin:0; padding:0; }
+    :root { --bg: #0d0d0d; --card: #141414; --border: rgba(255,255,255,0.1); --green: #22c55e; --red: #ef4444; }
+    body { background: var(--bg); color: #f0f0f0; font-family: 'IBM Plex Sans', sans-serif; margin:0; padding:0; }
     .header { background: #111; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
     .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 20px 0; }
@@ -40,17 +40,13 @@ HTML_DASHBOARD = """
 <body>
 <div class="header">
   <div class="logo">CryptoBot Simulator</div>
-  <div>
-    Solde total : <strong id="total_balance">10 000</strong> USDT<br>
-    <span id="pnl"></span>
-  </div>
+  <div>Solde total : <strong id="total_balance">10 000</strong> USDT <span id="pnl"></span></div>
 </div>
 
-<div style="max-width:1300px; margin: 0 auto; padding: 20px;">
-  <!-- Graphique prix en direct -->
+<div style="max-width:1300px; margin:0 auto; padding:20px;">
   <div class="card">
-    <h2>Graphique prix BTC en direct</h2>
-    <canvas id="priceChart" height="120"></canvas>
+    <h2>Graphique BTC en direct</h2>
+    <canvas id="priceChart" height="140"></canvas>
   </div>
 
   <div class="card">
@@ -62,7 +58,7 @@ HTML_DASHBOARD = """
   </div>
 
   <div class="card">
-    <h2>Historique des trades + P&L</h2>
+    <h2>Historique des trades</h2>
     <table>
       <thead><tr><th>Date</th><th>Action</th><th>Paire</th><th>Prix</th><th>Montant</th></tr></thead>
       <tbody id="history"></tbody>
@@ -79,36 +75,22 @@ HTML_DASHBOARD = """
     const res = await fetch('/api/status');
     const data = await res.json();
 
-    // Mise à jour solde + P&L
     document.getElementById('total_balance').textContent = Number(data.portfolio.total_balance).toLocaleString('fr-FR');
     const pnlEl = document.getElementById('pnl');
     const pnl = data.portfolio.unrealized_pnl;
-    pnlEl.innerHTML = pnl >= 0 
-      ? `<span style="color:#22c55e">+$${pnl.toLocaleString('fr-FR')}</span>` 
-      : `<span style="color:#ef4444">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
+    pnlEl.innerHTML = pnl >= 0 ? ` <span style="color:#22c55e">+$${pnl.toLocaleString('fr-FR')}</span>` : ` <span style="color:#ef4444">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
 
-    // Graphique prix BTC
-    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    // Graphique
+    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
     prices.push(data.btc_price);
     timestamps.push(now);
     if (prices.length > 60) { prices.shift(); timestamps.shift(); }
 
     if (!priceChart) {
-      const ctx = document.getElementById('priceChart').getContext('2d');
-      priceChart = new Chart(ctx, {
+      priceChart = new Chart(document.getElementById('priceChart'), {
         type: 'line',
-        data: {
-          labels: timestamps,
-          datasets: [{
-            label: 'BTC/USDT',
-            data: prices,
-            borderColor: '#22c55e',
-            borderWidth: 2,
-            tension: 0.3,
-            pointRadius: 0
-          }]
-        },
-        options: { scales: { y: { grid: { color: '#222' } }, x: { grid: { color: '#222' } } } }
+        data: { labels: timestamps, datasets: [{ label: 'BTC/USDT', data: prices, borderColor: '#22c55e', tension: 0.3 }] },
+        options: { scales: { y: { grid: { color: '#222' }}, x: { grid: { color: '#222' }}}}
       });
     } else {
       priceChart.data.labels = timestamps;
@@ -116,37 +98,22 @@ HTML_DASHBOARD = """
       priceChart.update('none');
     }
 
-    // Signaux
+    // Signaux et historique...
     let html = '';
     data.recent_signals.forEach(s => {
-      html += `<tr>
-        <td>${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR')}</td>
-        <td>${s.symbol}</td>
-        <td class="${s.signal.toLowerCase()}">${s.signal}</td>
-        <td>${s.rsi}</td>
-        <td>${s.score}/100</td>
-        <td>${s.reason}</td>
-        <td><button onclick="trade('${s.symbol}', '${s.signal}', 150)">Trader 150$</button></td>
-      </tr>`;
+      html += `<tr><td>${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR')}</td><td>${s.symbol}</td><td class="${s.signal.toLowerCase()}">${s.signal}</td><td>${s.rsi}</td><td>${s.score}/100</td><td>${s.reason}</td><td><button onclick="trade('${s.symbol}', '${s.signal}', 150)">Trader 150$</button></td></tr>`;
     });
-    document.getElementById('signals').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#666;">Aucun signal pour le moment</td></tr>';
+    document.getElementById('signals').innerHTML = html;
 
-    // Historique
     let hist = '';
-    data.portfolio.history.slice(-12).reverse().forEach(t => {
-      hist += `<tr>
-        <td>${t.timestamp.slice(11,19)}</td>
-        <td class="${t.side.toLowerCase()}">${t.side}</td>
-        <td>${t.symbol}</td>
-        <td>$${Number(t.price).toLocaleString('fr-FR')}</td>
-        <td>$${Number(t.amount_usdt).toLocaleString('fr-FR')}</td>
-      </tr>`;
+    data.portfolio.history.slice(-10).reverse().forEach(t => {
+      hist += `<tr><td>${t.timestamp.slice(11,19)}</td><td class="${t.side.toLowerCase()}">${t.side}</td><td>${t.symbol}</td><td>$${Number(t.price).toLocaleString('fr-FR')}</td><td>$${Number(t.amount_usdt).toLocaleString('fr-FR')}</td></tr>`;
     });
     document.getElementById('history').innerHTML = hist;
   }
 
   async function trade(symbol, side, amount) {
-    await fetch('/api/trade', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({symbol, side, amount}) });
+    await fetch('/api/trade', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({symbol, side, amount})});
     update();
   }
 
