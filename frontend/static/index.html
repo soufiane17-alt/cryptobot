@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CryptoBot — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d0d;
+      --bg-card: #141414;
+      --bg-card2: #1a1a1a;
+      --border: rgba(255,255,255,0.07);
+      --border-md: rgba(255,255,255,0.12);
+      --text-primary: #f0f0f0;
+      --text-secondary: #888;
+      --text-muted: #555;
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.1);
+      --accent: #22c55e;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+    html, body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px 40px; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 0.5px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+    .hdr-left { display: flex; align-items: center; gap: 12px; }
+    .logo { font-family: var(--font-mono); font-size: 15px; font-weight: 600; letter-spacing: -0.5px; }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .badge-live {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--green); background: var(--green-bg);
+      padding: 3px 8px; border-radius: 4px; letter-spacing: .5px;
+    }
+    .price-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    @media(max-width:800px){ .price-grid { grid-template-columns: 1fr; } }
+    .pcard {
+      background: var(--bg-card); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+      position: relative; overflow: hidden; transition: border-color .2s;
+    }
+    .pcard:hover { border-color: var(--border-md); }
+    .pcard-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .pcard-sym { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+    .chg {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+      padding: 2px 7px; border-radius: 3px;
+    }
+    .chg.up { color: var(--green); background: var(--green-bg); }
+    .chg.dn { color: var(--red); background: var(--red-bg); }
+    .pcard-price { font-family: var(--font-mono); font-size: 20px; font-weight: 600; margin-bottom: 3px; }
+    .pcard-sub { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+    .section-label {
+      font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase;
+      color: var(--text-muted); font-weight: 500; margin: 24px 0 10px;
+    }
+    .panel {
+      background: var(--bg-card); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+    }
+    .sig-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--text-muted); font-weight: 500; padding: 0 12px 10px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    tbody tr:hover { background: var(--bg-card2); }
+    tbody td { padding: 11px 12px; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+    .pill {
+      display: inline-block; font-family: var(--font-mono); font-size: 10px;
+      font-weight: 600; padding: 2px 8px; border-radius: 3px;
+    }
+    .pill.buy { background: var(--green-bg); color: var(--green); }
+    .pill.sell { background: var(--red-bg); color: var(--red); }
+    .pill.hold { background: rgba(234,179,8,.1); color: #eab308; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="hdr-left">
+    <div class="live-dot"></div>
+    <span class="logo">CryptoBot</span>
+    <span class="badge-live">LIVE</span>
+  </div>
+  <div class="hdr-right">
+    <span class="hdr-clock" id="clock">--:--:-- UTC</span>
+  </div>
+</header>
+
+<div class="wrapper">
+  <div class="section-label">Prix en temps réel</div>
+  <div class="price-grid" id="price-grid"></div>
+
+  <div class="section-label" style="margin-top:24px">Derniers signaux</div>
+  <div class="panel">
+    <div class="sig-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Heure</th>
+            <th>Paire</th>
+            <th>Signal</th>
+            <th>RSI</th>
+            <th>Raison</th>
+          </tr>
+        </thead>
+        <tbody id="signals-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function updateDashboard() {
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+
+      // Prix en live (BTC, ETH, SOL)
+      const grid = document.getElementById('price-grid');
+      grid.innerHTML = `
+        <div class="pcard">
+          <div class="pcard-top"><span class="pcard-sym">BTC/USDT</span></div>
+          <div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="pcard">
+          <div class="pcard-top"><span class="pcard-sym">ETH/USDT</span></div>
+          <div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="pcard">
+          <div class="pcard-top"><span class="pcard-sym">SOL/USDT</span></div>
+          <div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div>
+        </div>
+      `;
+
+      // Signaux
+      const tbody = document.getElementById('signals-body');
+      tbody.innerHTML = '';
+      data.recent_signals.forEach(s => {
+        const pillClass = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="td-mono" style="color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</td>
+          <td class="td-mono" style="font-weight:600">${s.symbol}</td>
+          <td><span class="pill ${pillClass}">${s.signal}</span></td>
+          <td class="td-mono">${s.rsi}</td>
+          <td style="color:var(--text-muted)">${s.reason}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+    } catch(e) {
+      console.log("Erreur de connexion au backend");
+    }
+  }
+
+  // Mise à jour toutes les 3 secondes
+  setInterval(updateDashboard, 3000);
+  updateDashboard();
+
+  // Horloge UTC
+  function updateClock() {
+    const n = new Date();
+    const hh = String(n.getUTCHours()).padStart(2,'0');
+    const mm = String(n.getUTCMinutes()).padStart(2,'0');
+    const ss = String(n.getUTCSeconds()).padStart(2,'0');
+    document.getElementById('clock').textContent = `${hh}:${mm}:${ss} UTC`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
