@@ -6,7 +6,7 @@ from bot.signals import get_signal
 from bot.paper_trading import load_portfolio, execute_paper_trade, get_current_pnl
 import time
 
-app = FastAPI(title="CryptoBot — Prototype Simulator")
+app = FastAPI(title="CryptoBot — Trading Simulator (Prototype)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,7 +30,8 @@ HTML_DASHBOARD = """
     .header { background: #111; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
     .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 20px 0; }
-    select, button { padding: 8px 12px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 6px; }
+    button { padding: 8px 16px; margin: 4px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+    button.active { background: #22c55e; color: black; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border); }
     .buy { color: var(--green); font-weight: 600; }
@@ -46,16 +47,15 @@ HTML_DASHBOARD = """
 </div>
 
 <div style="max-width:1350px; margin: 0 auto; padding: 20px;">
-  <!-- Sélecteur de graphique -->
+  <!-- Graphique avec sélecteur -->
   <div class="card">
     <div style="margin-bottom:12px;">
-      <strong>Graphique :</strong>
-      <button onclick="switchChart('BTC/USDT')" style="margin-right:8px;">BTC</button>
-      <button onclick="switchChart('ETH/USDT')" style="margin-right:8px;">ETH</button>
-      <button onclick="switchChart('SOL/USDT')">SOL</button>
+      <strong>Graphique en direct :</strong>
+      <button onclick="switchChart('BTC/USDT')" class="active" id="btn-btc">BTC</button>
+      <button onclick="switchChart('ETH/USDT')" id="btn-eth">ETH</button>
+      <button onclick="switchChart('SOL/USDT')" id="btn-sol">SOL</button>
     </div>
     <canvas id="priceChart" height="160"></canvas>
-    <div id="sentiment" style="margin-top:8px; font-size:0.9rem; font-family:monospace;"></div>
   </div>
 
   <!-- Signaux -->
@@ -67,10 +67,10 @@ HTML_DASHBOARD = """
     </table>
   </div>
 
-  <!-- Admin / Rapport -->
-  <div class="card">
-    <h2>📊 Rapport Admin — Évolution du bot en temps réel</h2>
-    <div id="admin_report" style="line-height:1.7;"></div>
+  <!-- Admin Report (protégé) -->
+  <div class="card" id="admin-section" style="display:none;">
+    <h2>🔐 Rapport Admin (code requis)</h2>
+    <div id="admin_report"></div>
   </div>
 
   <!-- Historique -->
@@ -89,6 +89,13 @@ HTML_DASHBOARD = """
   let prices = [];
   let timestamps = [];
 
+  function switchChart(symbol) {
+    currentSymbol = symbol;
+    document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + symbol.toLowerCase().split('/')[0]).classList.add('active');
+    update();
+  }
+
   async function update() {
     const res = await fetch('/api/status');
     const data = await res.json();
@@ -96,20 +103,18 @@ HTML_DASHBOARD = """
     // Solde + P&L
     document.getElementById('total_balance').textContent = Number(data.portfolio.total_balance).toLocaleString('fr-FR');
     const pnl = data.portfolio.unrealized_pnl;
-    document.getElementById('pnl').innerHTML = pnl >= 0 
-      ? `<span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` 
-      : `<span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
+    document.getElementById('pnl').innerHTML = pnl >= 0 ? ` <span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` : ` <span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
 
     // Graphique
     const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
-    prices.push(data.btc_price); // on garde BTC comme base, on peut changer plus tard
+    prices.push(data.btc_price); // on garde BTC pour l'instant, on peut améliorer plus tard
     timestamps.push(now);
-    if (prices.length > 120) { prices.shift(); timestamps.shift(); } // ~2 heures rolling
+    if (prices.length > 120) { prices.shift(); timestamps.shift(); }
 
     if (!priceChart) {
       priceChart = new Chart(document.getElementById('priceChart'), {
         type: 'line',
-        data: { labels: timestamps, datasets: [{ label: currentSymbol, data: prices, borderColor: '#22c55e', tension: 0.3, pointRadius: 0 }] },
+        data: { labels: timestamps, datasets: [{ label: currentSymbol, data: prices, borderColor: '#22c55e', tension: 0.3 }] },
         options: { scales: { y: { grid: { color: '#222' } }, x: { grid: { color: '#222' } } } }
       });
     } else {
@@ -117,9 +122,6 @@ HTML_DASHBOARD = """
       priceChart.data.datasets[0].data = prices;
       priceChart.update('none');
     }
-
-    // Sentiment simple
-    document.getElementById('sentiment').innerHTML = `Sentiment actuel ${currentSymbol} : <strong style="color:#eab308">NEUTRAL</strong> (basé sur momentum 1h)`;
 
     // Signaux
     let html = '';
@@ -134,35 +136,14 @@ HTML_DASHBOARD = """
         <td><button onclick="trade('${s.symbol}', '${s.signal}', 150)">Trader 150$</button></td>
       </tr>`;
     });
-    document.getElementById('signals').innerHTML = html;
-
-    // Admin report
-    document.getElementById('admin_report').innerHTML = `
-      <strong>Statistiques du bot en temps réel :</strong><br>
-      Total trades : ${data.portfolio.history.length}<br>
-      Win rate : -- % (en cours d'apprentissage)<br>
-      P&L total : ${pnl >= 0 ? '+' : ''}$${pnl.toLocaleString('fr-FR')}<br>
-      Meilleure paire aujourd'hui : SOL<br>
-      <small style="color:#666;">Mode prototype - le bot s'entraîne tout seul</small>
-    `;
+    document.getElementById('signals').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#666;">Aucun signal pour le moment</td></tr>';
 
     // Historique
     let hist = '';
-    data.portfolio.history.slice(-10).reverse().forEach(t => {
-      hist += `<tr>
-        <td>${t.timestamp.slice(11,19)}</td>
-        <td class="${t.side.toLowerCase()}">${t.side}</td>
-        <td>${t.symbol}</td>
-        <td>$${Number(t.price).toLocaleString('fr-FR')}</td>
-        <td>$${Number(t.amount_usdt).toLocaleString('fr-FR')}</td>
-      </tr>`;
+    data.portfolio.history.slice(-12).reverse().forEach(t => {
+      hist += `<tr><td>${t.timestamp.slice(11,19)}</td><td class="${t.side.toLowerCase()}">${t.side}</td><td>${t.symbol}</td><td>$${Number(t.price).toLocaleString('fr-FR')}</td><td>$${Number(t.amount_usdt).toLocaleString('fr-FR')}</td></tr>`;
     });
     document.getElementById('history').innerHTML = hist;
-  }
-
-  function switchChart(symbol) {
-    currentSymbol = symbol;
-    update();
   }
 
   async function trade(symbol, side, amount) {
@@ -170,7 +151,27 @@ HTML_DASHBOARD = """
     update();
   }
 
-  setInterval(update, 5000);
+  // Accès Admin protégé par code
+  function showAdmin() {
+    const code = prompt("Entrez le code Admin :");
+    if (code === "admin") {
+      document.getElementById('admin-section').style.display = 'block';
+      document.getElementById('admin_report').innerHTML = `
+        <strong>Rapport en temps réel :</strong><br>
+        Nombre de trades : ${document.getElementById('history').rows.length}<br>
+        P&L actuel : <span id="admin_pnl"></span><br>
+        Mode : Auto-training activé<br>
+        <small>Prototype en cours d'amélioration</small>
+      `;
+    } else {
+      alert("Code incorrect");
+    }
+  }
+
+  // Cliquez sur le logo pour ouvrir l'admin
+  document.querySelector('.logo').addEventListener('click', showAdmin);
+
+  setInterval(update, 4000);
   update();
 </script>
 </body>
