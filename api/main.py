@@ -28,7 +28,7 @@ HTML_DASHBOARD = """
     :root { --bg: #0d0d0d; --card: #141414; --border: rgba(255,255,255,0.1); --green: #22c55e; --red: #ef4444; }
     body { background: var(--bg); color: #f0f0f0; font-family: 'IBM Plex Sans', sans-serif; margin:0; padding:0; }
     .header { background: #111; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
+    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; cursor: pointer; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 20px 0; }
     button { padding: 8px 16px; margin: 4px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
     button.active { background: #22c55e; color: black; }
@@ -42,7 +42,7 @@ HTML_DASHBOARD = """
 </head>
 <body>
 <div class="header">
-  <div class="logo">CryptoBot Simulator (Prototype)</div>
+  <div class="logo" onclick="showAdmin()">CryptoBot Simulator</div>
   <div>Solde total : <strong id="total_balance">10 000</strong> USDT <span id="pnl"></span></div>
 </div>
 
@@ -67,9 +67,9 @@ HTML_DASHBOARD = """
     </table>
   </div>
 
-  <!-- Admin Report (protégé) -->
+  <!-- Admin Report (caché) -->
   <div class="card" id="admin-section" style="display:none;">
-    <h2>🔐 Rapport Admin (code requis)</h2>
+    <h2>🔐 Rapport Admin</h2>
     <div id="admin_report"></div>
   </div>
 
@@ -103,11 +103,16 @@ HTML_DASHBOARD = """
     // Solde + P&L
     document.getElementById('total_balance').textContent = Number(data.portfolio.total_balance).toLocaleString('fr-FR');
     const pnl = data.portfolio.unrealized_pnl;
-    document.getElementById('pnl').innerHTML = pnl >= 0 ? ` <span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` : ` <span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
+    document.getElementById('pnl').innerHTML = pnl >= 0 
+      ? `<span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` 
+      : `<span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
 
-    // Graphique
+    // Graphique dynamique selon la crypto choisie
+    const priceKey = currentSymbol.toLowerCase().replace('/', '_') + '_price';
+    const currentPrice = data[priceKey] || data.btc_price;
+
     const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
-    prices.push(data.btc_price); // on garde BTC pour l'instant, on peut améliorer plus tard
+    prices.push(currentPrice);
     timestamps.push(now);
     if (prices.length > 120) { prices.shift(); timestamps.shift(); }
 
@@ -120,6 +125,7 @@ HTML_DASHBOARD = """
     } else {
       priceChart.data.labels = timestamps;
       priceChart.data.datasets[0].data = prices;
+      priceChart.data.datasets[0].label = currentSymbol;
       priceChart.update('none');
     }
 
@@ -151,25 +157,22 @@ HTML_DASHBOARD = """
     update();
   }
 
-  // Accès Admin protégé par code
+  // Admin protégé
   function showAdmin() {
     const code = prompt("Entrez le code Admin :");
     if (code === "admin") {
       document.getElementById('admin-section').style.display = 'block';
       document.getElementById('admin_report').innerHTML = `
-        <strong>Rapport en temps réel :</strong><br>
+        <strong>Rapport Admin en temps réel</strong><br>
         Nombre de trades : ${document.getElementById('history').rows.length}<br>
         P&L actuel : <span id="admin_pnl"></span><br>
         Mode : Auto-training activé<br>
-        <small>Prototype en cours d'amélioration</small>
+        <small>Prototype - en cours d'amélioration</small>
       `;
     } else {
       alert("Code incorrect");
     }
   }
-
-  // Cliquez sur le logo pour ouvrir l'admin
-  document.querySelector('.logo').addEventListener('click', showAdmin);
 
   setInterval(update, 4000);
   update();
