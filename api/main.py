@@ -28,7 +28,7 @@ HTML_DASHBOARD = """
     :root { --bg: #0d0d0d; --card: #141414; --border: rgba(255,255,255,0.1); --green: #22c55e; --red: #ef4444; }
     body { background: var(--bg); color: #f0f0f0; font-family: 'IBM Plex Sans', sans-serif; margin:0; padding:0; }
     .header { background: #111; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; cursor: pointer; }
+    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 20px 0; }
     button { padding: 8px 16px; margin: 4px; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
     button.active { background: #22c55e; color: black; }
@@ -42,12 +42,11 @@ HTML_DASHBOARD = """
 </head>
 <body>
 <div class="header">
-  <div class="logo" onclick="showAdmin()">CryptoBot Simulator</div>
+  <div class="logo">CryptoBot Simulator (Prototype)</div>
   <div>Solde total : <strong id="total_balance">10 000</strong> USDT <span id="pnl"></span></div>
 </div>
 
 <div style="max-width:1350px; margin: 0 auto; padding: 20px;">
-  <!-- Graphique avec sélecteur -->
   <div class="card">
     <div style="margin-bottom:12px;">
       <strong>Graphique en direct :</strong>
@@ -58,7 +57,6 @@ HTML_DASHBOARD = """
     <canvas id="priceChart" height="160"></canvas>
   </div>
 
-  <!-- Signaux -->
   <div class="card">
     <h2>Derniers signaux</h2>
     <table>
@@ -67,13 +65,6 @@ HTML_DASHBOARD = """
     </table>
   </div>
 
-  <!-- Admin Report (caché) -->
-  <div class="card" id="admin-section" style="display:none;">
-    <h2>🔐 Rapport Admin</h2>
-    <div id="admin_report"></div>
-  </div>
-
-  <!-- Historique -->
   <div class="card">
     <h2>Historique des trades simulés</h2>
     <table>
@@ -107,11 +98,11 @@ HTML_DASHBOARD = """
       ? `<span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` 
       : `<span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
 
-    // Graphique dynamique selon la crypto choisie
+    // Graphique
+    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
     const priceKey = currentSymbol.toLowerCase().replace('/', '_') + '_price';
     const currentPrice = data[priceKey] || data.btc_price;
 
-    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
     prices.push(currentPrice);
     timestamps.push(now);
     if (prices.length > 120) { prices.shift(); timestamps.shift(); }
@@ -155,23 +146,6 @@ HTML_DASHBOARD = """
   async function trade(symbol, side, amount) {
     await fetch('/api/trade', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({symbol, side, amount}) });
     update();
-  }
-
-  // Admin protégé
-  function showAdmin() {
-    const code = prompt("Entrez le code Admin :");
-    if (code === "admin") {
-      document.getElementById('admin-section').style.display = 'block';
-      document.getElementById('admin_report').innerHTML = `
-        <strong>Rapport Admin en temps réel</strong><br>
-        Nombre de trades : ${document.getElementById('history').rows.length}<br>
-        P&L actuel : <span id="admin_pnl"></span><br>
-        Mode : Auto-training activé<br>
-        <small>Prototype - en cours d'amélioration</small>
-      `;
-    } else {
-      alert("Code incorrect");
-    }
   }
 
   setInterval(update, 4000);
