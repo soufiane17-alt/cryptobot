@@ -27,47 +27,45 @@ HTML_DASHBOARD = """
     :root {
       --bg: #0d0d0d;
       --bg-card: #141414;
-      --border: rgba(255,255,255,0.07);
-      --text-primary: #f0f0f0;
-      --text-secondary: #888;
-      --text-muted: #555;
+      --border: rgba(255,255,255,0.1);
+      --text: #f0f0f0;
+      --muted: #888;
       --green: #22c55e;
       --red: #ef4444;
-      --font-mono: 'IBM Plex Mono', monospace;
-      --font-sans: 'IBM Plex Sans', sans-serif;
+      --yellow: #eab308;
     }
-    body { background: var(--bg); color: var(--text-primary); font-family: var(--font-sans); min-height: 100vh; }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
     .wrapper { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-    .logo { font-family: var(--font-mono); font-size: 18px; font-weight: 600; }
-    .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600; }
+    .live { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 10px; height: 10px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-    .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 24px 0; }
-    .pcard { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .pcard-sym { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
-    .pcard-price { font-family: var(--font-mono); font-size: 28px; font-weight: 600; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { color: var(--text-muted); font-weight: 500; font-size: 13px; }
-    .pill { padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; font-family: var(--font-mono); }
-    .pill.buy { background: rgba(34,197,94,0.15); color: var(--green); }
-    .pill.sell { background: rgba(239,68,68,0.15); color: var(--red); }
-    .pill.hold { background: rgba(234,179,8,0.15); color: #eab308; }
-    .score { font-weight: 700; color: #eab308; }
+    .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 30px 0; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .symbol { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--muted); }
+    .price { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; font-size: 13px; }
+    .pill { padding: 5px 14px; border-radius: 9999px; font-size: 12px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+    .pill.buy { background: rgba(34,197,94,0.2); color: var(--green); }
+    .pill.sell { background: rgba(239,68,68,0.2); color: var(--red); }
+    .pill.hold { background: rgba(234,179,8,0.2); color: var(--yellow); }
+    .score { font-weight: 700; color: var(--yellow); }
   </style>
 </head>
 <body>
 <header>
-  <div class="live-dot"></div>
-  <span class="logo">CryptoBot</span>
-  <span>LIVE</span>
+  <div class="logo">CryptoBot</div>
+  <div class="live"><div class="dot"></div><span>LIVE • EN TEMPS RÉEL</span></div>
 </header>
 
 <div class="wrapper">
-  <h2 style="margin-bottom:8px;">Prix en temps réel</h2>
+  <h2>Prix en temps réel</h2>
   <div class="price-grid" id="price-grid"></div>
 
-  <h2 style="margin:32px 0 12px;">Derniers signaux</h2>
+  <h2 style="margin: 40px 0 15px;">Derniers signaux</h2>
   <table>
     <thead>
       <tr>
@@ -92,39 +90,29 @@ HTML_DASHBOARD = """
       // Prix
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
-        <div class="pcard">
-          <div class="pcard-sym">BTC/USDT</div>
-          <div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div>
-        </div>
-        <div class="pcard">
-          <div class="pcard-sym">ETH/USDT</div>
-          <div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div>
-        </div>
-        <div class="pcard">
-          <div class="pcard-sym">SOL/USDT</div>
-          <div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div>
-        </div>
+        <div class="card"><div class="symbol">BTC/USDT</div><div class="price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div></div>
+        <div class="card"><div class="symbol">ETH/USDT</div><div class="price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div></div>
+        <div class="card"><div class="symbol">SOL/USDT</div><div class="price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div></div>
       `;
 
-      // Tableau signaux
+      // Signaux
       const tbody = document.getElementById('signals-body');
       tbody.innerHTML = '';
       data.recent_signals.forEach(s => {
-        const pillClass = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
+        const pill = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td style="color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</td>
+          <td style="color:var(--muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td>
           <td style="font-weight:600">${s.symbol}</td>
-          <td><span class="pill ${pillClass}">${s.signal}</span></td>
+          <td><span class="pill ${pill}">${s.signal}</span></td>
           <td style="text-align:right">${s.rsi}</td>
           <td style="text-align:right"><span class="score">${s.score}/100</span></td>
-          <td style="color:var(--text-muted)">${s.reason}</td>
+          <td style="color:var(--muted)">${s.reason}</td>
         `;
         tbody.appendChild(row);
       });
-    } catch(e) { console.error(e); }
+    } catch(e) {}
   }
-
   setInterval(update, 3000);
   update();
 </script>
