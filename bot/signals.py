@@ -16,7 +16,8 @@ def calculate_macd(closes):
     ema26 = series.ewm(span=26).mean()
     macd = ema12 - ema26
     signal = macd.ewm(span=9).mean()
-    return macd, signal
+    histogram = macd - signal
+    return macd, signal, histogram
 
 def calculate_bollinger(closes, period=20, std=2):
     series = pd.Series(closes)
@@ -31,57 +32,69 @@ def calculate_ema(closes, period=50):
 
 def get_signal(symbol="BTC/USDT"):
     try:
-        ohlcv = get_ohlcv(symbol)
+        ohlcv = get_ohlcv(symbol, limit=100)
         closes = [c[4] for c in ohlcv]
         
         rsi = calculate_rsi(closes)
-        macd, macd_signal = calculate_macd(closes)
+        macd, macd_signal, histogram = calculate_macd(closes)
         upper_bb, lower_bb, sma_bb = calculate_bollinger(closes)
         ema50 = calculate_ema(closes)
 
         last_rsi = rsi.iloc[-1]
         last_macd = macd.iloc[-1]
         last_macd_signal = macd_signal.iloc[-1]
+        last_histogram = histogram.iloc[-1]
         last_price = closes[-1]
         last_upper_bb = upper_bb.iloc[-1]
         last_lower_bb = lower_bb.iloc[-1]
         last_ema50 = ema50.iloc[-1]
 
-        # Calcul du score de confiance (0-100)
+        # Scoring beaucoup plus dynamique (0-100)
         score = 0
 
-        # RSI
-        if last_rsi < 30: score += 35
-        elif last_rsi > 70: score += 25
-        elif 40 < last_rsi < 60: score += 10
+        # 1. RSI (plus sensible)
+        if last_rsi < 25: score += 40
+        elif last_rsi < 35: score += 30
+        elif last_rsi > 75: score += 35
+        elif last_rsi > 65: score += 25
+        elif 42 < last_rsi < 58: score += 15
 
-        # MACD crossover
+        # 2. MACD + Histogramme (très important)
         if last_macd > last_macd_signal and macd.iloc[-2] <= macd_signal.iloc[-2]:
-            score += 30
+            score += 35
         elif last_macd < last_macd_signal and macd.iloc[-2] >= macd_signal.iloc[-2]:
-            score += 20
+            score += 28
+        if last_histogram > 0 and histogram.iloc[-2] <= 0:
+            score += 15
 
-        # Bollinger Bands
-        if last_price < last_lower_bb: score += 20
-        elif last_price > last_upper_bb: score += 15
+        # 3. Bollinger Bands
+        if last_price < last_lower_bb: score += 25
+        elif last_price > last_upper_bb: score += 20
+        elif abs(last_price - sma_bb.iloc[-1]) / sma_bb.iloc[-1] < 0.005: score += 10  # squeeze
 
-        # EMA50 trend
-        if last_price > last_ema50: score += 15
-        else: score += 5
+        # 4. EMA50 trend + momentum
+        if last_price > last_ema50: score += 18
+        else: score -= 5
 
-        # Score final (max 100)
+        # Bonus si plusieurs conditions sont alignées
+        if last_rsi < 35 and last_price < last_lower_bb:
+            score += 12
+
         score = min(100, max(0, int(score)))
 
         # Décision finale
-        if score >= 75 and last_rsi < 35:
+        if score >= 78 and last_rsi < 38:
             signal = "BUY"
-            reason = f"Score fort {score}/100 - RSI oversold + confirmations"
-        elif score >= 75 and last_rsi > 70:
+            reason = f"Signal FORT {score}/100"
+        elif score >= 78 and last_rsi > 68:
             signal = "SELL"
-            reason = f"Score fort {score}/100 - RSI overbought"
+            reason = f"Signal FORT {score}/100"
+        elif score >= 65:
+            signal = "BUY" if last_price > last_ema50 else "SELL"
+            reason = f"Signal moyen {score}/100"
         else:
             signal = "HOLD"
-            reason = f"Score {score}/100 - Conditions insuffisantes"
+            reason = f"Conditions insuffisantes ({score}/100)"
 
         return {
             "signal": signal,
@@ -91,4 +104,4 @@ def get_signal(symbol="BTC/USDT"):
             "timestamp": int(time.time())
         }
     except Exception as e:
-        return {"signal": "HOLD", "rsi": 50, "score": 0, "reason": "Erreur calcul", "timestamp": int(time.time())}
+        return {"signal": "HOLD", "rsi": 50.0, "score": 0, "reason": "Erreur de calcul", "timestamp": int(time.time())}
