@@ -23,6 +23,7 @@ HTML_DASHBOARD = """
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CryptoBot — Trading Simulator (Prototype)</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root { --bg: #0d0d0d; --card: #141414; --border: rgba(255,255,255,0.1); --green: #22c55e; --red: #ef4444; --text: #f0f0f0; }
     body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; margin:0; padding:0; }
@@ -30,27 +31,26 @@ HTML_DASHBOARD = """
     .logo { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 20px 0; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 14px 10px; text-align: left; border-bottom: 1px solid var(--border); }
-    .buy { color: var(--green); font-weight: 600; }
-    .sell { color: var(--red); font-weight: 600; }
-    .positive { color: var(--green); }
-    .negative { color: var(--red); }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    .buy { color: var(--green); }
+    .sell { color: var(--red); }
     button { background: #22c55e; color: black; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
   </style>
 </head>
 <body>
 <div class="header">
   <div class="logo">CryptoBot Simulator</div>
-  <div style="text-align:right">
+  <div>
     Solde total : <strong id="total_balance">10 000</strong> USDT<br>
-    <span id="pnl" style="font-size:0.9rem"></span>
+    <span id="pnl"></span>
   </div>
 </div>
 
-<div style="max-width:1200px; margin: 0 auto; padding: 20px;">
+<div style="max-width:1300px; margin: 0 auto; padding: 20px;">
+  <!-- Graphique prix en direct -->
   <div class="card">
-    <h2>Prix en temps réel</h2>
-    <div id="prices" style="font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; line-height:1.6;"></div>
+    <h2>Graphique prix BTC en direct</h2>
+    <canvas id="priceChart" height="120"></canvas>
   </div>
 
   <div class="card">
@@ -62,7 +62,7 @@ HTML_DASHBOARD = """
   </div>
 
   <div class="card">
-    <h2>Historique des trades simulés</h2>
+    <h2>Historique des trades + P&L</h2>
     <table>
       <thead><tr><th>Date</th><th>Action</th><th>Paire</th><th>Prix</th><th>Montant</th></tr></thead>
       <tbody id="history"></tbody>
@@ -71,24 +71,50 @@ HTML_DASHBOARD = """
 </div>
 
 <script>
+  let priceChart;
+  let prices = [];
+  let timestamps = [];
+
   async function update() {
     const res = await fetch('/api/status');
     const data = await res.json();
 
-    // Prix
-    document.getElementById('prices').innerHTML = `
-      BTC/USDT : $${Number(data.btc_price).toLocaleString('fr-FR')}<br>
-      ETH/USDT : $${Number(data.eth_price).toLocaleString('fr-FR')}<br>
-      SOL/USDT : $${Number(data.sol_price).toLocaleString('fr-FR')}
-    `;
-
-    // Solde + P&L
+    // Mise à jour solde + P&L
     document.getElementById('total_balance').textContent = Number(data.portfolio.total_balance).toLocaleString('fr-FR');
     const pnlEl = document.getElementById('pnl');
     const pnl = data.portfolio.unrealized_pnl;
     pnlEl.innerHTML = pnl >= 0 
-      ? `<span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` 
-      : `<span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
+      ? `<span style="color:#22c55e">+$${pnl.toLocaleString('fr-FR')}</span>` 
+      : `<span style="color:#ef4444">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
+
+    // Graphique prix BTC
+    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    prices.push(data.btc_price);
+    timestamps.push(now);
+    if (prices.length > 60) { prices.shift(); timestamps.shift(); }
+
+    if (!priceChart) {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: timestamps,
+          datasets: [{
+            label: 'BTC/USDT',
+            data: prices,
+            borderColor: '#22c55e',
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: { scales: { y: { grid: { color: '#222' } }, x: { grid: { color: '#222' } } } }
+      });
+    } else {
+      priceChart.data.labels = timestamps;
+      priceChart.data.datasets[0].data = prices;
+      priceChart.update('none');
+    }
 
     // Signaux
     let html = '';
@@ -107,7 +133,7 @@ HTML_DASHBOARD = """
 
     // Historique
     let hist = '';
-    data.portfolio.history.slice(-10).reverse().forEach(t => {
+    data.portfolio.history.slice(-12).reverse().forEach(t => {
       hist += `<tr>
         <td>${t.timestamp.slice(11,19)}</td>
         <td class="${t.side.toLowerCase()}">${t.side}</td>
@@ -120,11 +146,7 @@ HTML_DASHBOARD = """
   }
 
   async function trade(symbol, side, amount) {
-    await fetch('/api/trade', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({symbol, side, amount})
-    });
+    await fetch('/api/trade', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({symbol, side, amount}) });
     update();
   }
 
