@@ -98,12 +98,21 @@
       const res = await fetch('/api/status');
       const data = await res.json();
 
-      // Prix
+      // Prix en live
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
-        <div class="pcard"><div class="pcard-sym">BTC/USDT</div><div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div></div>
-        <div class="pcard"><div class="pcard-sym">ETH/USDT</div><div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div></div>
-        <div class="pcard"><div class="pcard-sym">SOL/USDT</div><div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div></div>
+        <div class="pcard">
+          <div class="pcard-sym">BTC/USDT</div>
+          <div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="pcard">
+          <div class="pcard-sym">ETH/USDT</div>
+          <div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="pcard">
+          <div class="pcard-sym">SOL/USDT</div>
+          <div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div>
+        </div>
       `;
 
       // Signaux
