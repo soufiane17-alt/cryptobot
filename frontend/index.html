@@ -5,30 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CryptoBot Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0a0a0a; color: white; text-align: center; padding: 80px 20px; }
-        h1 { font-size: 48px; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; background: #0a0a0a; color: white; text-align: center; padding: 100px 20px; }
+        h1 { font-size: 50px; margin-bottom: 20px; }
         .ok { color: #22c55e; font-size: 24px; }
+        #debug { margin-top: 50px; background: #111; padding: 20px; border-radius: 10px; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto; font-family: monospace; font-size: 14px; }
     </style>
 </head>
 <body>
     <h1>🚀 CryptoBot</h1>
     <p class="ok">✅ Dashboard chargé avec succès</p>
-    <p style="margin-top:40px; color:#666; font-size:15px;">Si tu vois ce message, le fichier HTML est bien servi par Railway.</p>
+    <p style="color:#666; margin-top:20px;">Si tu vois ce message, le fichier est bien servi par Railway.</p>
     
-    <div style="margin-top:60px; background:#111; padding:20px; border-radius:8px; max-width:600px; margin-left:auto; margin-right:auto; font-family:monospace; font-size:13px; text-align:left;" id="debug">
-        Chargement des données API...
-    </div>
+    <div id="debug">Chargement des données API...</div>
 
     <script>
         fetch('/api/status')
             .then(r => r.json())
             .then(d => {
                 document.getElementById('debug').innerHTML = `
-                    <strong>✅ API fonctionne</strong><br>
+                    ✅ API OK<br>
                     BTC: $${d.btc_price}<br>
                     ETH: $${d.eth_price}<br>
                     SOL: $${d.sol_price}<br><br>
-                    Signaux : ${d.recent_signals.length} trouvés
+                    Signaux reçus : ${d.recent_signals.length}
                 `;
             })
             .catch(() => {
