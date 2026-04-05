@@ -14,7 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dashboard sophistiqué IBM Plex (propre et connecté)
 HTML_DASHBOARD = """
 <!DOCTYPE html>
 <html lang="fr">
@@ -59,6 +58,9 @@ HTML_DASHBOARD = """
     .pill.buy { background: var(--green-bg); color: var(--green); }
     .pill.sell { background: var(--red-bg); color: var(--red); }
     .pill.hold { background: rgba(234,179,8,.1); color: #eab308; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding: 12px 8px; text-align: left; border-bottom: 0.5px solid var(--border); }
+    th { color: var(--text-muted); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -73,20 +75,19 @@ HTML_DASHBOARD = """
   <div class="price-grid" id="price-grid"></div>
 
   <div class="section-label" style="margin-top:32px">Derniers signaux</div>
-  <div class="panel">
-    <table style="width:100%;border-collapse:collapse">
-      <thead>
-        <tr>
-          <th style="text-align:left;padding:8px 0;color:var(--text-muted)">HEURE</th>
-          <th style="text-align:left;padding:8px 0;color:var(--text-muted)">PAIRE</th>
-          <th style="text-align:left;padding:8px 0;color:var(--text-muted)">SIGNAL</th>
-          <th style="text-align:right;padding:8px 0;color:var(--text-muted)">RSI</th>
-          <th style="text-align:left;padding:8px 0;color:var(--text-muted)">RAISON</th>
-        </tr>
-      </thead>
-      <tbody id="signals-body"></tbody>
-    </table>
-  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>HEURE</th>
+        <th>PAIRE</th>
+        <th>SIGNAL</th>
+        <th>RSI</th>
+        <th>SCORE</th>
+        <th>RAISON</th>
+      </tr>
+    </thead>
+    <tbody id="signals-body"></tbody>
+  </table>
 </div>
 
 <script>
@@ -95,6 +96,7 @@ HTML_DASHBOARD = """
       const res = await fetch('/api/status');
       const data = await res.json();
 
+      // Prix
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
         <div class="pcard"><div class="pcard-sym">BTC/USDT</div><div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div></div>
@@ -102,17 +104,19 @@ HTML_DASHBOARD = """
         <div class="pcard"><div class="pcard-sym">SOL/USDT</div><div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div></div>
       `;
 
+      // Signaux
       const tbody = document.getElementById('signals-body');
       tbody.innerHTML = '';
       data.recent_signals.forEach(s => {
         const pill = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td style="padding:12px 0;color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td>
-          <td style="padding:12px 0;font-weight:600">${s.symbol}</td>
-          <td style="padding:12px 0"><span class="pill ${pill}">${s.signal}</span></td>
-          <td style="padding:12px 0;text-align:right">${s.rsi}</td>
-          <td style="padding:12px 0;color:var(--text-muted)">${s.reason}</td>
+          <td style="color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td>
+          <td style="font-weight:600">${s.symbol}</td>
+          <td><span class="pill ${pill}">${s.signal}</span></td>
+          <td style="text-align:right">${s.rsi}</td>
+          <td style="text-align:right;font-weight:600;color:#eab308">${s.score}/100</td>
+          <td style="color:var(--text-muted)">${s.reason}</td>
         `;
         tbody.appendChild(row);
       });
@@ -142,7 +146,7 @@ async def status():
             "btc_price": get_price("BTC/USDT"),
             "eth_price": get_price("ETH/USDT"),
             "sol_price": get_price("SOL/USDT"),
-            "recent_signals": [get_signal(sym) for sym in ["BTC/USDT", "ETH/USDT", "SOL/USDT"]],
+            "recent_signals": [ {**get_signal(sym), "symbol": sym} for sym in ["BTC/USDT", "ETH/USDT", "SOL/USDT"] ],
             "timestamp": time.time()
         }
     except Exception as e:
