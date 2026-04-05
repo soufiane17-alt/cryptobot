@@ -20,101 +20,78 @@
       --green-bg: rgba(34,197,94,0.1);
       --red: #ef4444;
       --red-bg: rgba(239,68,68,0.1);
-      --accent: #22c55e;
       --font-mono: 'IBM Plex Mono', monospace;
       --font-sans: 'IBM Plex Sans', sans-serif;
       --radius: 8px;
-      --radius-lg: 12px;
     }
-    html, body {
+    body {
       background: var(--bg);
       color: var(--text-primary);
       font-family: var(--font-sans);
-      font-size: 14px;
       min-height: 100vh;
-      line-height: 1.5;
     }
-    .wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px 40px; }
+    .wrapper { max-width: 1200px; margin: 0 auto; padding: 20px; }
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 16px 20px;
       border-bottom: 0.5px solid var(--border);
+      background: var(--bg);
       position: sticky;
       top: 0;
-      background: var(--bg);
       z-index: 100;
     }
-    .hdr-left { display: flex; align-items: center; gap: 12px; }
-    .logo { font-family: var(--font-mono); font-size: 15px; font-weight: 600; letter-spacing: -0.5px; }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+    .logo { font-family: var(--font-mono); font-size: 15px; font-weight: 600; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .badge-live {
-      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-      color: var(--green); background: var(--green-bg);
-      padding: 3px 8px; border-radius: 4px; letter-spacing: .5px;
-    }
-    .price-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
-    @media(max-width:800px){ .price-grid { grid-template-columns: 1fr; } }
+    .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 10px; }
     .pcard {
-      background: var(--bg-card); border: 0.5px solid var(--border);
-      border-radius: var(--radius); padding: 14px 16px;
-      position: relative; overflow: hidden; transition: border-color .2s;
+      background: var(--bg-card);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
     }
-    .pcard:hover { border-color: var(--border-md); }
-    .pcard-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .pcard-sym { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-    .pcard-price { font-family: var(--font-mono); font-size: 20px; font-weight: 600; margin-bottom: 3px; }
-    .section-label {
-      font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase;
-      color: var(--text-muted); font-weight: 500; margin: 24px 0 10px;
-    }
-    .panel {
-      background: var(--bg-card); border: 0.5px solid var(--border);
-      border-radius: var(--radius-lg); padding: 16px 18px;
-    }
+    .pcard-sym { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+    .pcard-price { font-family: var(--font-mono); font-size: 24px; font-weight: 600; }
     .pill {
-      display: inline-block; font-family: var(--font-mono); font-size: 10px;
-      font-weight: 600; padding: 2px 8px; border-radius: 3px;
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 3px;
     }
     .pill.buy { background: var(--green-bg); color: var(--green); }
     .pill.sell { background: var(--red-bg); color: var(--red); }
-    .pill.hold { background: rgba(234,179,8,.1); color: #eab308; }
+    .pill.hold { background: rgba(234,179,8,0.1); color: #eab308; }
   </style>
 </head>
 <body>
 <header>
-  <div class="hdr-left">
-    <div class="live-dot"></div>
-    <span class="logo">CryptoBot</span>
-    <span class="badge-live">LIVE</span>
-  </div>
-  <div class="hdr-right">
-    <span class="hdr-clock" id="clock">--:--:-- UTC</span>
-  </div>
+  <div class="live-dot"></div>
+  <span class="logo">CryptoBot</span>
+  <span style="font-family:var(--font-mono);font-size:10px;color:var(--green)">LIVE</span>
 </header>
 
 <div class="wrapper">
-  <div class="section-label">Prix en temps réel</div>
+  <div style="font-size:10px;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:8px">PRIX EN TEMPS RÉEL</div>
   <div class="price-grid" id="price-grid"></div>
 
-  <div class="section-label" style="margin-top:24px">Derniers signaux</div>
-  <div class="panel">
-    <div class="sig-table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Heure</th>
-            <th>Paire</th>
-            <th>Signal</th>
-            <th>RSI</th>
-            <th>Raison</th>
-          </tr>
-        </thead>
-        <tbody id="signals-body"></tbody>
-      </table>
-    </div>
+  <div style="font-size:10px;letter-spacing:1.5px;color:var(--text-muted);margin:32px 0 8px">DERNIERS SIGNAUX</div>
+  <div class="panel" style="background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:8px 0;color:var(--text-muted);font-size:11px">HEURE</th>
+          <th style="text-align:left;padding:8px 0;color:var(--text-muted);font-size:11px">PAIRE</th>
+          <th style="text-align:left;padding:8px 0;color:var(--text-muted);font-size:11px">SIGNAL</th>
+          <th style="text-align:right;padding:8px 0;color:var(--text-muted);font-size:11px">RSI</th>
+          <th style="text-align:left;padding:8px 0;color:var(--text-muted);font-size:11px">RAISON</th>
+        </tr>
+      </thead>
+      <tbody id="signals-body" style="font-size:13px"></tbody>
+    </table>
   </div>
 </div>
 
@@ -124,20 +101,20 @@
       const res = await fetch('/api/status');
       const data = await res.json();
 
-      // Prix en live
+      // Prix
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
         <div class="pcard">
-          <div class="pcard-top"><span class="pcard-sym">BTC/USDT</span></div>
-          <div class="pcard-price">$${Number(data.btc_price || 0).toLocaleString('fr-FR')}</div>
+          <div class="pcard-sym">BTC/USDT</div>
+          <div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div>
         </div>
         <div class="pcard">
-          <div class="pcard-top"><span class="pcard-sym">ETH/USDT</span></div>
-          <div class="pcard-price">$${Number(data.eth_price || 0).toLocaleString('fr-FR')}</div>
+          <div class="pcard-sym">ETH/USDT</div>
+          <div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div>
         </div>
         <div class="pcard">
-          <div class="pcard-top"><span class="pcard-sym">SOL/USDT</span></div>
-          <div class="pcard-price">$${Number(data.sol_price || 0).toLocaleString('fr-FR')}</div>
+          <div class="pcard-sym">SOL/USDT</div>
+          <div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div>
         </div>
       `;
 
@@ -145,35 +122,30 @@
       const tbody = document.getElementById('signals-body');
       tbody.innerHTML = '';
       data.recent_signals.forEach(s => {
-        const pillClass = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
+        const pill = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="td-mono" style="color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</td>
-          <td class="td-mono" style="font-weight:600">${s.symbol}</td>
-          <td><span class="pill ${pillClass}">${s.signal}</span></td>
-          <td class="td-mono">${s.rsi}</td>
-          <td style="color:var(--text-muted)">${s.reason}</td>
+          <td style="padding:10px 0;color:#666">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td>
+          <td style="padding:10px 0;font-weight:600">${s.symbol}</td>
+          <td style="padding:10px 0"><span class="pill ${pill}">${s.signal}</span></td>
+          <td style="padding:10px 0;text-align:right">${s.rsi}</td>
+          <td style="padding:10px 0;color:#777">${s.reason}</td>
         `;
         tbody.appendChild(row);
       });
-
     } catch(e) {
-      console.log("Erreur de connexion au backend");
+      console.log("Erreur de connexion");
     }
   }
 
   setInterval(updateDashboard, 3000);
   updateDashboard();
 
-  function updateClock() {
+  // Horloge
+  setInterval(() => {
     const n = new Date();
-    const hh = String(n.getUTCHours()).padStart(2,'0');
-    const mm = String(n.getUTCMinutes()).padStart(2,'0');
-    const ss = String(n.getUTCSeconds()).padStart(2,'0');
-    document.getElementById('clock').textContent = `${hh}:${mm}:${ss} UTC`;
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
+    document.querySelector('.hdr-clock').textContent = `${String(n.getUTCHours()).padStart(2,'0')}:${String(n.getUTCMinutes()).padStart(2,'0')}:${String(n.getUTCSeconds()).padStart(2,'0')} UTC`;
+  }, 1000);
 </script>
 </body>
 </html>
