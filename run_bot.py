@@ -4,7 +4,7 @@ from bot.paper_trading import execute_paper_trade, load_portfolio
 import time
 
 print("🚀 CryptoBot Simulator - Mode AUTO-ENTRAÎNEMENT activé")
-print("Le bot trade tout seul avec l'argent virtuel quand le signal est assez fort.\n")
+print("Le bot va trader automatiquement avec l'argent virtuel quand le score est assez fort (>= 82)\n")
 
 while True:
     portfolio = load_portfolio()
@@ -16,15 +16,15 @@ while True:
 
         print(f"   {symbol} | Prix: ${price:,.2f} | {signal['signal']} ({signal['score']}/100)")
 
-        # Auto-trade si le signal est assez fort
+        # Auto-trade si signal assez fort
         if signal["score"] >= 82 and signal["signal"] in ["BUY", "SELL"]:
-            amount = 200  # 200$ par trade automatique
+            amount = 200
             result = execute_paper_trade(symbol, signal["signal"], amount)
             
             if result["status"] == "success":
                 print(f"   ✅ AUTO-TRADE : {signal['signal']} {symbol} pour ${amount}")
             else:
-                print(f"   ❌ Impossible : {result.get('message', 'erreur')}")
+                print(f"   ❌ {result.get('message', 'erreur')}")
 
     print("⏳ Prochaine vérification dans 30 secondes...\n")
     time.sleep(30)
