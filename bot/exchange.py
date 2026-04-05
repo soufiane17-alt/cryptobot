@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Bybit est beaucoup plus fiable depuis Railway
-exchange = ccxt.bybit({
+# OKX est beaucoup plus permissif que Bybit/Binance depuis Railway
+exchange = ccxt.okx({
     'enableRateLimit': True,
 })
 
@@ -15,6 +15,6 @@ def get_price(symbol="BTC/USDT"):
     return ticker["last"]
 
 def get_ohlcv(symbol="BTC/USDT", timeframe="15m", limit=200):
-    """Récupère les bougies OHLCV"""
+    """Récupère les bougies OHLCV pour les signaux"""
     data = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
     return data
