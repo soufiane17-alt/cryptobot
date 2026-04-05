@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pathlib import Path
+import os
 
 app = FastAPI(title="CryptoBot API", version="1.0.0")
 
@@ -12,10 +14,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Monter les fichiers statiques
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+# Montage conditionnel des fichiers statiques (solution pro)
+static_dir = Path("frontend/static")
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+else:
+    print("⚠️ Dossier frontend/static non trouvé → dashboard accessible mais sans fichiers statiques supplémentaires")
 
-# Importer les routes du dashboard
+# Importer les routes
 from api.routes.dashboard import router as dashboard_router
 app.include_router(dashboard_router)
 
@@ -27,4 +33,4 @@ async def root():
 async def health():
     return {"status": "ok", "service": "CryptoBot API"}
 
-print("✅ Dashboard + API prêt !")
+print("✅ FastAPI + Dashboard prêt (version pro)")
