@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from bot.exchange import get_ohlcv
+import time
 
 def calculate_rsi(closes, period=14):
     delta = pd.Series(closes).diff()
@@ -21,75 +22,73 @@ def calculate_bollinger(closes, period=20, std=2):
     series = pd.Series(closes)
     sma = series.rolling(period).mean()
     std_dev = series.rolling(period).std()
-    upper = sma + std * std_dev
-    lower = sma - std * std_dev
-    return upper, sma, lower
+    upper = sma + std_dev * std
+    lower = sma - std_dev * std
+    return upper, lower, sma
 
 def calculate_ema(closes, period=50):
     return pd.Series(closes).ewm(span=period).mean()
 
 def get_signal(symbol="BTC/USDT"):
-    ohlcv = get_ohlcv(symbol, timeframe="15m", limit=200)
-    closes = [c[4] for c in ohlcv]
-    
-    rsi = calculate_rsi(closes)
-    macd, macd_signal = calculate_macd(closes)
-    upper, middle, lower = calculate_bollinger(closes)
-    ema50 = calculate_ema(closes)
-    
-    last_rsi = rsi.iloc[-1]
-    last_price = closes[-1]
-    last_upper = upper.iloc[-1]
-    last_lower = lower.iloc[-1]
-    last_ema50 = ema50.iloc[-1]
-    
-    macd_cross = macd.iloc[-1] > macd_signal.iloc[-1]
-    prev_cross = macd.iloc[-2] <= macd_signal.iloc[-2]
-    bullish_cross = macd_cross and not prev_cross
-    
-    score = 0
-    reasons = []
-    
-    # RSI
-    if last_rsi < 30:
-        score += 40
-        reasons.append("RSI oversold")
-    elif last_rsi > 70:
-        score -= 40
-        reasons.append("RSI overbought")
-    
-    # MACD
-    if bullish_cross:
-        score += 30
-        reasons.append("MACD bullish cross")
-    
-    # Bollinger Bands
-    if last_price < last_lower:
-        score += 25
-        reasons.append("Price below lower Bollinger")
-    elif last_price > last_upper:
-        score -= 25
-        reasons.append("Price above upper Bollinger")
-    
-    # EMA50 trend
-    if last_price > last_ema50:
-        score += 15
-        reasons.append("Above EMA50")
-    else:
-        score -= 15
-        reasons.append("Below EMA50")
-    
-    # Décision finale
-    if score >= 60:
-        signal = "BUY"
-    elif score <= -50:
-        signal = "SELL"
-    else:
-        signal = "HOLD"
-    
-    return {
-        "signal": signal,
-        "rsi": round(last_rsi, 1),
-        "score": score,
-        "reason": " | ".join(reasons) if reasons else "Aucune condition forte"
-    }
+    try:
+        ohlcv = get_ohlcv(symbol)
+        closes = [c[4] for c in ohlcv]
+        
+        rsi = calculate_rsi(closes)
+        macd, macd_signal = calculate_macd(closes)
+        upper_bb, lower_bb, sma_bb = calculate_bollinger(closes)
+        ema50 = calculate_ema(closes)
+
+        last_rsi = rsi.iloc[-1]
+        last_macd = macd.iloc[-1]
+        last_macd_signal = macd_signal.iloc[-1]
+        last_price = closes[-1]
+        last_upper_bb = upper_bb.iloc[-1]
+        last_lower_bb = lower_bb.iloc[-1]
+        last_ema50 = ema50.iloc[-1]
+
+        # Calcul du score de confiance (0-100)
+        score = 0
+
+        # RSI
+        if last_rsi < 30: score += 35
+        elif last_rsi > 70: score += 25
+        elif 40 < last_rsi < 60: score += 10
+
+        # MACD crossover
+        if last_macd > last_macd_signal and macd.iloc[-2] <= macd_signal.iloc[-2]:
+            score += 30
+        elif last_macd < last_macd_signal and macd.iloc[-2] >= macd_signal.iloc[-2]:
+            score += 20
+
+        # Bollinger Bands
+        if last_price < last_lower_bb: score += 20
+        elif last_price > last_upper_bb: score += 15
+
+        # EMA50 trend
+        if last_price > last_ema50: score += 15
+        else: score += 5
+
+        # Score final (max 100)
+        score = min(100, max(0, int(score)))
+
+        # Décision finale
+        if score >= 75 and last_rsi < 35:
+            signal = "BUY"
+            reason = f"Score fort {score}/100 - RSI oversold + confirmations"
+        elif score >= 75 and last_rsi > 70:
+            signal = "SELL"
+            reason = f"Score fort {score}/100 - RSI overbought"
+        else:
+            signal = "HOLD"
+            reason = f"Score {score}/100 - Conditions insuffisantes"
+
+        return {
+            "signal": signal,
+            "rsi": round(last_rsi, 1),
+            "score": score,
+            "reason": reason,
+            "timestamp": int(time.time())
+        }
+    except Exception as e:
+        return {"signal": "HOLD", "rsi": 50, "score": 0, "reason": "Erreur calcul", "timestamp": int(time.time())}
