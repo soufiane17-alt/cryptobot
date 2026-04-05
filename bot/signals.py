@@ -49,47 +49,43 @@ def get_signal(symbol="BTC/USDT"):
         last_lower_bb = lower_bb.iloc[-1]
         last_ema50 = ema50.iloc[-1]
 
-        # Scoring beaucoup plus dynamique (0-100)
-        score = 0
+        # === SCORING PLUS DYNAMIQUE ET RÉACTIF ===
+        score = 50  # base neutre
 
-        # 1. RSI (plus sensible)
-        if last_rsi < 25: score += 40
-        elif last_rsi < 35: score += 30
-        elif last_rsi > 75: score += 35
-        elif last_rsi > 65: score += 25
-        elif 42 < last_rsi < 58: score += 15
+        # RSI très sensible (surtout en zone extrême)
+        if last_rsi < 20: score += 45
+        elif last_rsi < 30: score += 35
+        elif last_rsi > 80: score -= 40
+        elif last_rsi > 70: score -= 30
 
-        # 2. MACD + Histogramme (très important)
+        # MACD crossover + histogramme
         if last_macd > last_macd_signal and macd.iloc[-2] <= macd_signal.iloc[-2]:
             score += 35
-        elif last_macd < last_macd_signal and macd.iloc[-2] >= macd_signal.iloc[-2]:
-            score += 28
         if last_histogram > 0 and histogram.iloc[-2] <= 0:
+            score += 18
+
+        # Bollinger + squeeze
+        if last_price < last_lower_bb: score += 30
+        elif last_price > last_upper_bb: score -= 25
+
+        # EMA50 + momentum
+        if last_price > last_ema50: score += 20
+        else: score -= 12
+
+        # Bonus forte convergence
+        if last_rsi < 28 and last_price < last_lower_bb:
             score += 15
-
-        # 3. Bollinger Bands
-        if last_price < last_lower_bb: score += 25
-        elif last_price > last_upper_bb: score += 20
-        elif abs(last_price - sma_bb.iloc[-1]) / sma_bb.iloc[-1] < 0.005: score += 10  # squeeze
-
-        # 4. EMA50 trend + momentum
-        if last_price > last_ema50: score += 18
-        else: score -= 5
-
-        # Bonus si plusieurs conditions sont alignées
-        if last_rsi < 35 and last_price < last_lower_bb:
-            score += 12
 
         score = min(100, max(0, int(score)))
 
-        # Décision finale
-        if score >= 78 and last_rsi < 38:
+        # === DÉCISION FINALE PLUS INTELLIGENTE ===
+        if score >= 82 and last_rsi < 35:
             signal = "BUY"
-            reason = f"Signal FORT {score}/100"
-        elif score >= 78 and last_rsi > 68:
+            reason = f"Signal TRÈS FORT {score}/100"
+        elif score >= 75 and last_rsi > 72:
             signal = "SELL"
-            reason = f"Signal FORT {score}/100"
-        elif score >= 65:
+            reason = f"Signal TRÈS FORT {score}/100"
+        elif score >= 68:
             signal = "BUY" if last_price > last_ema50 else "SELL"
             reason = f"Signal moyen {score}/100"
         else:
@@ -104,4 +100,4 @@ def get_signal(symbol="BTC/USDT"):
             "timestamp": int(time.time())
         }
     except Exception as e:
-        return {"signal": "HOLD", "rsi": 50.0, "score": 0, "reason": "Erreur de calcul", "timestamp": int(time.time())}
+        return {"signal": "HOLD", "rsi": 50.0, "score": 0, "reason": "Erreur calcul", "timestamp": int(time.time())}
