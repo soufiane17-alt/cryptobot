@@ -49,40 +49,40 @@ def get_signal(symbol="BTC/USDT"):
         last_lower_bb = lower_bb.iloc[-1]
         last_ema50 = ema50.iloc[-1]
 
-        # === SCORING V6 - VERSION FINALE ÉQUILIBRÉE ===
-        score = 50
+        # Scoring v7 - très équilibré
+        score = 48
 
-        # RSI
-        if last_rsi < 22: score += 30
-        elif last_rsi < 30: score += 22
-        elif last_rsi > 78: score -= 30
-        elif last_rsi > 70: score -= 22
+        # RSI (priorité forte sur les extrêmes)
+        if last_rsi < 22: score += 35
+        elif last_rsi < 30: score += 25
+        elif last_rsi > 78: score -= 35
+        elif last_rsi > 70: score -= 25
 
-        # MACD + Histogramme
+        # MACD
         if last_macd > last_macd_signal and macd.iloc[-2] <= macd_signal.iloc[-2]:
-            score += 25
+            score += 28
         if last_histogram > 0 and histogram.iloc[-2] <= 0:
-            score += 12
+            score += 15
 
         # Bollinger
-        if last_price < last_lower_bb: score += 22
-        elif last_price > last_upper_bb: score -= 20
+        if last_price < last_lower_bb: score += 25
+        elif last_price > last_upper_bb: score -= 22
 
         # EMA50
-        if last_price > last_ema50: score += 14
-        else: score -= 9
+        if last_price > last_ema50: score += 16
+        else: score -= 10
 
-        # Bonus convergence (seulement si tout est aligné)
+        # Bonus convergence forte
         if last_rsi < 28 and last_price < last_lower_bb and last_macd > last_macd_signal:
-            score += 15
+            score += 18
 
         score = min(100, max(0, int(score)))
 
-        # Décision finale
-        if score >= 88:
-            signal = "BUY" if last_price < last_ema50 * 1.02 else "SELL"
+        # Décision finale très cohérente
+        if score >= 85:
+            signal = "BUY" if last_rsi < 35 else "SELL"
             reason = f"Signal TRÈS FORT {score}/100"
-        elif score >= 75:
+        elif score >= 73:
             signal = "BUY" if last_price > last_ema50 else "SELL"
             reason = f"Signal moyen {score}/100"
         else:
