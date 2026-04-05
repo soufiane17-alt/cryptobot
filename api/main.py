@@ -27,54 +27,47 @@ HTML_DASHBOARD = """
     :root {
       --bg: #0d0d0d;
       --bg-card: #141414;
-      --bg-card2: #1a1a1a;
       --border: rgba(255,255,255,0.07);
-      --border-md: rgba(255,255,255,0.12);
       --text-primary: #f0f0f0;
       --text-secondary: #888;
       --text-muted: #555;
       --green: #22c55e;
-      --green-bg: rgba(34,197,94,0.1);
       --red: #ef4444;
-      --red-bg: rgba(239,68,68,0.1);
       --font-mono: 'IBM Plex Mono', monospace;
       --font-sans: 'IBM Plex Sans', sans-serif;
-      --radius: 8px;
-      --radius-lg: 12px;
     }
     body { background: var(--bg); color: var(--text-primary); font-family: var(--font-sans); min-height: 100vh; }
-    .wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px 40px; }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
-    .logo { font-family: var(--font-mono); font-size: 15px; font-weight: 600; letter-spacing: -0.5px; }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .price-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
-    @media(max-width:800px){ .price-grid { grid-template-columns: 1fr; } }
-    .pcard { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; transition: border-color .2s; }
-    .pcard:hover { border-color: var(--border-md); }
-    .pcard-sym { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-    .pcard-price { font-family: var(--font-mono); font-size: 22px; font-weight: 600; }
-    .pill { display: inline-block; font-family: var(--font-mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 3px; }
-    .pill.buy { background: var(--green-bg); color: var(--green); }
-    .pill.sell { background: var(--red-bg); color: var(--red); }
-    .pill.hold { background: rgba(234,179,8,.1); color: #eab308; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding: 12px 8px; text-align: left; border-bottom: 0.5px solid var(--border); }
-    th { color: var(--text-muted); font-weight: 500; }
+    .wrapper { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .logo { font-family: var(--font-mono); font-size: 18px; font-weight: 600; }
+    .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 24px 0; }
+    .pcard { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .pcard-sym { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
+    .pcard-price { font-family: var(--font-mono); font-size: 28px; font-weight: 600; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); font-weight: 500; font-size: 13px; }
+    .pill { padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; font-family: var(--font-mono); }
+    .pill.buy { background: rgba(34,197,94,0.15); color: var(--green); }
+    .pill.sell { background: rgba(239,68,68,0.15); color: var(--red); }
+    .pill.hold { background: rgba(234,179,8,0.15); color: #eab308; }
+    .score { font-weight: 700; color: #eab308; }
   </style>
 </head>
 <body>
 <header>
   <div class="live-dot"></div>
   <span class="logo">CryptoBot</span>
-  <span class="badge-live">LIVE</span>
+  <span>LIVE</span>
 </header>
 
 <div class="wrapper">
-  <div class="section-label">Prix en temps réel</div>
+  <h2 style="margin-bottom:8px;">Prix en temps réel</h2>
   <div class="price-grid" id="price-grid"></div>
 
-  <div class="section-label" style="margin-top:32px">Derniers signaux</div>
+  <h2 style="margin:32px 0 12px;">Derniers signaux</h2>
   <table>
     <thead>
       <tr>
@@ -91,7 +84,7 @@ HTML_DASHBOARD = """
 </div>
 
 <script>
-  async function updateDashboard() {
+  async function update() {
     try {
       const res = await fetch('/api/status');
       const data = await res.json();
@@ -99,32 +92,41 @@ HTML_DASHBOARD = """
       // Prix
       const grid = document.getElementById('price-grid');
       grid.innerHTML = `
-        <div class="pcard"><div class="pcard-sym">BTC/USDT</div><div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div></div>
-        <div class="pcard"><div class="pcard-sym">ETH/USDT</div><div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div></div>
-        <div class="pcard"><div class="pcard-sym">SOL/USDT</div><div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div></div>
+        <div class="pcard">
+          <div class="pcard-sym">BTC/USDT</div>
+          <div class="pcard-price">$${Number(data.btc_price).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="pcard">
+          <div class="pcard-sym">ETH/USDT</div>
+          <div class="pcard-price">$${Number(data.eth_price).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="pcard">
+          <div class="pcard-sym">SOL/USDT</div>
+          <div class="pcard-price">$${Number(data.sol_price).toLocaleString('fr-FR')}</div>
+        </div>
       `;
 
-      // Signaux
+      // Tableau signaux
       const tbody = document.getElementById('signals-body');
       tbody.innerHTML = '';
       data.recent_signals.forEach(s => {
-        const pill = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
+        const pillClass = s.signal === 'BUY' ? 'buy' : s.signal === 'SELL' ? 'sell' : 'hold';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td style="color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td>
+          <td style="color:var(--text-muted)">${new Date(s.timestamp*1000).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</td>
           <td style="font-weight:600">${s.symbol}</td>
-          <td><span class="pill ${pill}">${s.signal}</span></td>
+          <td><span class="pill ${pillClass}">${s.signal}</span></td>
           <td style="text-align:right">${s.rsi}</td>
-          <td style="text-align:right;font-weight:600;color:#eab308">${s.score}/100</td>
+          <td style="text-align:right"><span class="score">${s.score}/100</span></td>
           <td style="color:var(--text-muted)">${s.reason}</td>
         `;
         tbody.appendChild(row);
       });
-    } catch(e) {}
+    } catch(e) { console.error(e); }
   }
 
-  setInterval(updateDashboard, 3000);
-  updateDashboard();
+  setInterval(update, 3000);
+  update();
 </script>
 </body>
 </html>
@@ -134,10 +136,6 @@ HTML_DASHBOARD = """
 async def root():
     return HTMLResponse(HTML_DASHBOARD)
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
 @app.get("/api/status")
 async def status():
     try:
@@ -146,8 +144,8 @@ async def status():
             "btc_price": get_price("BTC/USDT"),
             "eth_price": get_price("ETH/USDT"),
             "sol_price": get_price("SOL/USDT"),
-            "recent_signals": [ {**get_signal(sym), "symbol": sym} for sym in ["BTC/USDT", "ETH/USDT", "SOL/USDT"] ],
+            "recent_signals": [{**get_signal(sym), "symbol": sym} for sym in ["BTC/USDT", "ETH/USDT", "SOL/USDT"]],
             "timestamp": time.time()
         }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except:
+        return {"status": "error", "btc_price": 0, "eth_price": 0, "sol_price": 0, "recent_signals": []}
