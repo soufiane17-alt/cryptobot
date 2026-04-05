@@ -1,35 +1,32 @@
-import time
-from datetime import datetime
 from bot.exchange import get_price
 from bot.signals import get_signal
 from bot.telegram import send_alert, format_signal
-
-print("🚀 CryptoBot IA démarré - Mode boucle 30 secondes")
-print("=" * 70)
+from bot.risk import log_trade, calculate_position_size
+import time
 
 SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+ACCOUNT_BALANCE = 1000  # Solde simulé
+
+print("🚀 CryptoBot IA démarré - Mode multi-timeframe + risque automatique")
 
 while True:
-    try:
-        now = datetime.now().strftime("%H:%M:%S")
-        print(f"[{now}] 🔄 Analyse en cours...")
+    print(f"\n[{time.strftime('%H:%M:%S')}] 🔄 Vérification des signaux...")
+    for symbol in SYMBOLS:
+        signal = get_signal(symbol)
+        price = get_price(symbol)
 
-        for symbol in SYMBOLS:
-            signal = get_signal(symbol)
-            price = get_price(symbol)
-            
-            print(f"   {symbol:10} | Prix: {price:,.0f} | Signal: {signal['signal']:4} (RSI {signal['rsi']:5.1f})")
+        print(f"   {symbol} | Prix: {price:,.0f} | Signal: {signal['signal']} ({signal['score']}/100)")
 
-            if signal["signal"] in ["BUY", "SELL"]:
-                message = format_signal(signal, symbol)
-                send_alert(f"🕒 {now}\n{message}")
-                print(f"   ✅ Alerte envoyée sur Telegram pour {symbol}")
+        if signal["signal"] in ["BUY", "SELL"]:
+            trade = log_trade(symbol, signal["signal"], price, signal["score"], signal["reason"])
+            send_alert(f"""
+🔔 <b>{signal['signal']} — {symbol}</b>
+Prix : ${price:,.2f}
+Score : {signal['score']}/100
+Raison : {signal['reason']}
+Position suggérée : ${trade['position_size']}
+Stop-loss : ${trade['stop_loss']}
+            """.strip())
 
-        print("-" * 70)
-        print("⏳ Prochaine analyse dans 30 secondes...\n")
-        
-        time.sleep(30)   # 30 secondes
-
-    except Exception as e:
-        print(f"❌ Erreur : {e}")
-        time.sleep(10)
+    print(f"⏳ Prochaine vérification dans 30 secondes...")
+    time.sleep(30)
