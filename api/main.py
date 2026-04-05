@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from bot.exchange import get_price
 from bot.signals import get_signal
-from bot.paper_trading import load_portfolio, execute_paper_trade
+from bot.paper_trading import load_portfolio, execute_paper_trade, get_current_pnl
 import time
 
 app = FastAPI(title="CryptoBot Prototype Simulator")
@@ -33,28 +33,30 @@ HTML_DASHBOARD = """
     th, td { padding: 14px 10px; text-align: left; border-bottom: 1px solid var(--border); }
     .buy { color: var(--green); font-weight: 600; }
     .sell { color: var(--red); font-weight: 600; }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
     button { background: #22c55e; color: black; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-    button:hover { background: #16a34a; }
   </style>
 </head>
 <body>
 <div class="header">
   <div class="logo">CryptoBot Simulator</div>
-  <div>Portefeuille : <strong id="balance">10 000</strong> USDT</div>
+  <div style="text-align:right">
+    Solde total : <strong id="total_balance">10 000</strong> USDT<br>
+    <span id="pnl" style="font-size:0.9rem"></span>
+  </div>
 </div>
 
 <div style="max-width:1200px; margin: 0 auto; padding: 20px;">
   <div class="card">
     <h2>Prix en temps réel</h2>
-    <div id="prices" style="font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem;"></div>
+    <div id="prices" style="font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; line-height:1.6;"></div>
   </div>
 
   <div class="card">
     <h2>Derniers signaux</h2>
     <table>
-      <thead>
-        <tr><th>Heure</th><th>Paire</th><th>Signal</th><th>RSI</th><th>Score</th><th>Raison</th><th>Action</th></tr>
-      </thead>
+      <thead><tr><th>Heure</th><th>Paire</th><th>Signal</th><th>RSI</th><th>Score</th><th>Raison</th><th>Action</th></tr></thead>
       <tbody id="signals"></tbody>
     </table>
   </div>
@@ -62,9 +64,7 @@ HTML_DASHBOARD = """
   <div class="card">
     <h2>Historique des trades simulés</h2>
     <table>
-      <thead>
-        <tr><th>Date</th><th>Action</th><th>Paire</th><th>Prix</th><th>Montant</th></tr>
-      </thead>
+      <thead><tr><th>Date</th><th>Action</th><th>Paire</th><th>Prix</th><th>Montant</th></tr></thead>
       <tbody id="history"></tbody>
     </table>
   </div>
@@ -82,8 +82,13 @@ HTML_DASHBOARD = """
       SOL/USDT : $${Number(data.sol_price).toLocaleString('fr-FR')}
     `;
 
-    // Solde
-    document.getElementById('balance').textContent = Number(data.portfolio.usdt).toLocaleString('fr-FR');
+    // Solde + P&L
+    document.getElementById('total_balance').textContent = Number(data.portfolio.total_balance).toLocaleString('fr-FR');
+    const pnlEl = document.getElementById('pnl');
+    const pnl = data.portfolio.unrealized_pnl;
+    pnlEl.innerHTML = pnl >= 0 
+      ? `<span class="positive">+$${pnl.toLocaleString('fr-FR')}</span>` 
+      : `<span class="negative">-$${Math.abs(pnl).toLocaleString('fr-FR')}</span>`;
 
     // Signaux
     let html = '';
@@ -98,11 +103,11 @@ HTML_DASHBOARD = """
         <td><button onclick="trade('${s.symbol}', '${s.signal}', 150)">Trader 150$</button></td>
       </tr>`;
     });
-    document.getElementById('signals').innerHTML = html || '<tr><td colspan="7" style="text-align:center; color:#666;">Aucun signal pour le moment</td></tr>';
+    document.getElementById('signals').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#666;">Aucun signal pour le moment</td></tr>';
 
     // Historique
     let hist = '';
-    data.portfolio.history.slice(-8).reverse().forEach(t => {
+    data.portfolio.history.slice(-10).reverse().forEach(t => {
       hist += `<tr>
         <td>${t.timestamp.slice(11,19)}</td>
         <td class="${t.side.toLowerCase()}">${t.side}</td>
@@ -137,12 +142,13 @@ async def root():
 @app.get("/api/status")
 async def status():
     portfolio = load_portfolio()
+    pnl = get_current_pnl(portfolio)
     return {
         "btc_price": get_price("BTC/USDT"),
         "eth_price": get_price("ETH/USDT"),
         "sol_price": get_price("SOL/USDT"),
         "recent_signals": [{**get_signal(sym), "symbol": sym} for sym in ["BTC/USDT", "ETH/USDT", "SOL/USDT"]],
-        "portfolio": portfolio
+        "portfolio": {**portfolio, **pnl}
     }
 
 @app.post("/api/trade")
